@@ -17,6 +17,15 @@ async def on_ready():
     global amOnline
     amOnline = True
     print('Logged in as {0.user}'.format(client))
+
+    for guild in client.guilds:
+        for channel in guild.channels:
+            if type(channel) == discord.VoiceChannel:
+                vc = await channel.connect()
+                await asyncio.sleep(5)
+                await vc.disconnect()
+
+#conans id: 210977628545351680
     
 @client.event
 async def on_message(message):
@@ -34,12 +43,5 @@ async def on_message(message):
         print("Shutting down")
         await message.channel.send('Shutting down!')
         exit(1) 
-
-    
-        
-
-    
-
-
 
 client.run(TOKEN)
