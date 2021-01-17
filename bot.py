@@ -30,6 +30,13 @@ async def trollConan():
         print("Sleeping for {0} seconds".format(randomInt))
         await asyncio.sleep(randomInt)
 
+
+usersToAnnoy = [
+    210977628545351680, #conan
+    214079671652843521, #jedi
+    306948002483011584 #lemonite
+]
+
 async def huntForConan():
     print("Hunting for Conan")
     for guild in client.guilds:
@@ -37,9 +44,10 @@ async def huntForConan():
             voiceMapping = channel.voice_states
             for item in voiceMapping.keys():
                 if item == 210977628545351680:
-                    print("Found Conan in {0}".format(channel.name))
+                #if item in usersToAnnoy:
+                    user = await client.fetch_user(item)
+                    print("Found {1} in {0}".format(channel.name, user))
                     vc = await channel.connect()
-                    await asyncio.sleep(1)
                     await vc.disconnect()
 
 #conans id: 210977628545351680
