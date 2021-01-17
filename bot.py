@@ -1,10 +1,8 @@
 import os
-
 import asyncio
 import discord
 import random
 from dotenv import load_dotenv
-
 
 load_dotenv()
 
@@ -34,8 +32,6 @@ async def trollConan():
 
 async def huntForConan():
     print("Hunting for Conan")
-    #conan = await client.fetch_user(210977628545351680)
-    #me = await client.fetch_user(121406882865872901)
     for guild in client.guilds:
         for channel in guild.voice_channels:
             voiceMapping = channel.voice_states
@@ -47,7 +43,7 @@ async def huntForConan():
                     await vc.disconnect()
 
 #conans id: 210977628545351680
-    
+
 @client.event
 async def on_message(message):
 
@@ -64,7 +60,7 @@ async def on_message(message):
     if message.content.startswith('$quit'):
         global amOnline
         amOnline = False
-            
+        
         print("Shutting down")
         await message.channel.send('Shutting down!')
         exit(1) 
