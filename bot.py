@@ -97,10 +97,42 @@ async def DistributeAddresses(messages):
         user = await client.fetch_user(currUser)
         prevUser = await client.fetch_user(prevKey)
         await user.send("You got: " + prevUser.name + " who lives at " + userDict[prevKey])
+        with open ("WishLists/" + prevUser.name + ".wsh", "r") as file:
+            tmp = ""
+            for line in file.readlines():
+                tmp += line + '\n'
+            await user.send("Their wishlist is " + tmp)
         prevKey = currUser
 
     await (await client.fetch_user(firstKey)).send("You got: " + (await client.fetch_user(keys[-1])).name + " who lives at " + userDict[keys[-1]])
+    with open ("WishLists/" + (await client.fetch_user(keys[-1])).name + ".wsh", "r") as file:
+            tmp = ""
+            for line in file.readlines():
+                tmp += line + '\n'
+            await (await client.fetch_user(firstKey)).send("Their wishlist is " + tmp)
 
+async def checkUsers(message):
+    with open(".add", "r") as file:
+        lines = file.readlines()
+        tmp = ""
+        for line in lines:
+            line = line.split(":")
+            tmp += (await client.fetch_user(line[0])).name + '\n'
+        
+        await message.channel.send("The following users have signed up: \n" + tmp)
+
+async def AddToWishList(message):
+    with open("Wishlists/" + message.author.name + ".wsh", "a") as file:
+        file.write('\n' + message.content[10:])
+    await message.author.send("Added " + message.content[10:] + " to your wishlist")
+
+async def CheckWishList(message):
+    with open("Wishlists/" + message.author.name + ".wsh", "r") as file:
+        lines = file.readlines()
+        tmp = ""
+        for line in lines:
+            tmp += line + '\n'
+    await message.author.send("Your wishlist is: " + tmp)
 
 @client.event
 async def on_message(message):
@@ -124,7 +156,29 @@ async def on_message(message):
         await DistributeAddresses(message)
 
     if message.content.startswith('$help'):
-        await message.channel.send("Use `$enter <Street Address, City, State, Zip>` to add your address and `$remove` to remove it")
+        tmp = """```
+$enter - Used to enter your address in the format of <Street Address City, State Zipcode, Perferred Delivery Name>. Example: $enter 1111 Street Waco, Texas 78787, Gav
+$remove - Used to remove your name and address from the pool. 
+$check - Used to check current users signed up for Secret Santa. Example: $check
+$wishlist - Used to add a single item to your wishlist. Example: $wishlist Cotton Candy
+$mywishlist - Used to check your wishlist. Example: $mywishlist
+$fuck - You'll see```"""
+        await message.channel.send(tmp)
+
+    if message.content.startswith('$check'):
+        await checkUsers(message)
+
+    if message.content.startswith('$wishlist'):
+        await AddToWishList(message)
+
+    if message.content.startswith('$mywishlist'):
+        await CheckWishList(message)
+
+    if message.content.startswith('$fuck'):
+        await message.channel.send("Fuck off")
+
+    if message.content.startswith ('$hohoho'):
+        await message.channel.send("||ho ho ho||")
 
     if message.content.startswith('$quit') and message.author.id == 121406882865872901:
         global amOnline
