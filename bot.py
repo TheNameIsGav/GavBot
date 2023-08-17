@@ -1,132 +1,297 @@
 import os
 import asyncio
-from typing import Any, Optional
+from typing import Any, List, Optional, Union
 import discord
+from discord.components import SelectOption
+from discord.emoji import Emoji
+from discord.enums import ButtonStyle
 from discord.ext import commands
 from discord.interactions import Interaction
+from discord.partial_emoji import PartialEmoji
+from discord.utils import MISSING
 from dotenv import load_dotenv
 import random
 from enum import Enum
 
 load_dotenv()
 
-TOKEN = os.getenv('DISCORD_TOKEN')
-
 intents = discord.Intents.all()
 intents.messages = True
 amOnline = False
-client = commands.Bot(command_prefix="/", intents=intents)
+client = commands.Bot(command_prefix="$", intents=intents)
+
+TOKEN = os.getenv('DISCORD_TOKEN')
+musicPath = os.getcwd() + "\Music"
+activeSessions = {}
 
 class PlayStates(Enum):
-    PLAYING = 1 #Currently playing audio
-    PAUSED = 2 #Not playing audio, still in voice channel
-    STOPPED = 3 #not playing audio and not in voice channel
+    Playing = 0 #Currently playing audio
+    Paused = 1 #Not playing audio, still in voice channel
+    Stopped = 2 #not playing audio and not in voice channel
+
+class Genre(Enum):
+    Battle = 0
+    Tavern = 1
+    Adventuring = 2
+    Boss = 3
 
 class PlaySessionView(discord.ui.View):
-    genre = None
+    genre:Genre = Genre.Adventuring
     current_track = None
     should_loop = None
     voice_channel = None
-    voice_client = None
+    voice_client:discord.VoiceClient = None
     interaction:discord.Interaction = None
     embed = None
-    playState:PlayStates = PlayStates.STOPPED
+    playState:PlayStates = PlayStates.Stopped
+    songQueue:[str] = []
+    
+    battleButton = None
+    adventuringButton = None
+    tavernButton = None
+    bossButton = None    
 
     playPauseButton = None
+    loopButton = None
 
+    volumeUpButton = None
+    volumeDownButton = None
+    
+    skipFowardButton = None
+    skipBackwardsButton = None
+
+    async def playSong(self):
+        if(self.voice_client.is_playing):
+            self.voice_client.stop()
+
+        sound = random.choice(os.listdir(musicPath + "\\" + self.genre.name))
+        file = os.path.join(musicPath, self.genre.name, sound)
+        print(file)
+        self.voice_client.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=file))
+        self.embed = discord.Embed(title=f"{self.genre.name}", description=f"{sound}", color=0xffffff)
+
+        self.playPauseButton.style = discord.ButtonStyle.success
+        self.playPauseButton.label = "⏸"
+        await self.interaction.edit_original_response(embed=self.embed, view=self)
+    
     def __init__(self, interaction:discord.Interaction):
         super().__init__(timeout=None)
         self.interaction = interaction
 
+        self.battleButton = BattleButton(self)
+        self.add_item(self.battleButton)
+
+        self.adventuringButton = AdventuringButton(self)
+        self.add_item(self.adventuringButton)
+
+        self.tavernButton = TavernButton(self)
+        self.add_item(self.tavernButton)
+
+        self.bossButton = BossButton(self)
+        self.add_item(self.bossButton)
+
+        self.volumeUpButton = VolumeUpButton(self)
+        self.add_item(self.volumeUpButton)
+
         self.playPauseButton = PlayPauseButton(self)
         self.add_item(self.playPauseButton)
 
-    async def onStateEnter(self, playstate:PlayStates):
-        match playstate:
-            case PlayStates.PLAYING:
-                self.playState = PlayStates.PLAYING
-                await self.beginPlaying()
-            case PlayStates.PAUSED:
-                self.playState = PlayStates.PAUSED
-                await self.pausePlaying()
-                pass
-            case PlayStates.STOPPED:
-                pass
-            case _:
-                pass
-        pass
+        self.volumeDownButton = VolumeDownButton(self)
+        self.add_item(self.volumeDownButton)
 
-    async def beginPlaying(self):
-        print("Starting Playing")
-        sound = random.choice(os.listdir(musicPath))
-        file = os.path.join(musicPath, sound)
-        self.voice_client.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=file))
+        self.skipBackwardsButton = SkipBackwardsButton(self)
+        self.add_item(self.skipBackwardsButton)
 
-        self.playPauseButton.style = discord.ButtonStyle.success
-        self.playPauseButton.label = "⏸"
+        self.loopButton = LoopButton(self)
+        self.add_item(self.loopButton)
 
-        await self.interaction.edit_original_response(embed=discord.Embed(title="cumming", description="cumming"), view=self)
-
-    async def pausePlaying(self):
-        print("Pausing Playing")
-        self.voice_client.stop()
-
-        self.playPauseButton.style = discord.ButtonStyle.red
-        self.playPauseButton.label = "⏵"
-
-        await self.interaction.edit_original_response(embed=discord.Embed(title="cum", description="cum"), view=self)
+        self.skipFowardButton = SkipFowardButton(self)
+        self.add_item(self.skipFowardButton)
 
     async def startup(self):
-        try:
-            print(f"Starting new play session for guild: {self.interaction.guild.name}")
-            voice_channel = self.interaction.user.voice.channel
-            if(voice_channel == None): 
-                await self.interaction.response.send_message("User is not connected to a voice channel")
-                return
-            
-            activeSessions[self.interaction.guild_id] = self
-            self.voice_client = await voice_channel.connect()
+        print(f"Starting new play session for guild: {self.interaction.guild.name}")
+        voice_channel = self.interaction.user.voice.channel
+        if(voice_channel == None): 
+            await self.interaction.response.send_message("User is not connected to a voice channel")
+            return
+        
+        activeSessions[self.interaction.guild_id] = self
+        self.voice_client = await voice_channel.connect()
 
-            self.embed = discord.Embed(title = "Cum", description="cum", color=0xffffff)
-            await self.interaction.response.send_message(embed=self.embed, view=self)
-            self.playState = PlayStates.PAUSED
-        except Exception as e:
-            print(e)
-            await self.interaction.response.send_message("Bot ran into an error executing that command")
-            
+        #self.voice_client.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source="E:\GavBot\Music\Battle\\battle.mp3"))
+
+        self.embed = discord.Embed(title = "Not playing", description="not playing", color=0xffffff)
+        await self.interaction.response.send_message(embed=self.embed, view=self)
+        self.playState = PlayStates.Paused
+
+    async def playPauseButtonPressed(self):
+        print("Play / Pause Button Pressed")
+        if(self.voice_client.is_playing()):
+            self.voice_client.pause()
+            self.playPauseButton.style = discord.ButtonStyle.red
+            self.playPauseButton.label = "⏵"
+        elif(self.voice_client.is_paused()):
+            self.voice_client.resume()
+            self.playPauseButton.style = discord.ButtonStyle.success
+            self.playPauseButton.label = "⏸"
+        else:
+            await self.playSong()
+            self.playPauseButton.style = discord.ButtonStyle.success
+            self.playPauseButton.label = "⏸"
+
+        await self.interaction.edit_original_response(embed=self.embed, view=self)
+
+    async def stopPlaying(self):
+        print("Stopping playback")
+        if(self.voice_client.is_connected()):
+            await self.voice_client.disconnect()
+            await self.interaction.delete_original_response()
             activeSessions.pop(self.interaction.guild_id)
+
+    async def skipFoward(self): #TODO
+        if(self.voice_client.is_playing()):
+            self.voice_client.stop()
+
+    async def skipBackwards(self): #TODO
+        pass
+
+    async def volumeUp(self): #TODO
+        pass
+
+    async def volumeDown(self): #TODO
+        pass
+
+    async def loop(self): #TODO
+        pass
+
+    async def changeGenre(self, value:Genre):
+        self.genre = value
+
+        self.battleButton.disabled = False
+        self.battleButton.style = discord.ButtonStyle.gray
+
+        self.adventuringButton.disabled = False
+        self.adventuringButton.style = discord.ButtonStyle.gray
+
+        self.bossButton.disabled = False
+        self.bossButton.style = discord.ButtonStyle.gray
+
+        self.tavernButton.disabled = False
+        self.tavernButton.style = discord.ButtonStyle.gray
+        match(value):
+            case Genre.Battle:
+                self.battleButton.disabled = True
+                self.battleButton.style = discord.ButtonStyle.green
+                pass
+            case Genre.Adventuring:
+                self.adventuringButton.disabled = True
+                self.adventuringButton.style = discord.ButtonStyle.green
+                pass
+            case Genre.Tavern:
+                self.tavernButton.disabled = True
+                self.tavernButton.style = discord.ButtonStyle.green
+                pass
+            case Genre.Boss:
+                self.bossButton.disabled = True
+                self.bossButton.style = discord.ButtonStyle.green
+                pass
+        await self.playSong()
+        pass
 
 class PlayPauseButton(discord.ui.Button):
     parent:PlaySessionView = None
 
     def __init__(self, parent:PlaySessionView):
-        super().__init__(style=discord.ButtonStyle.success, label="⏸")
+        super().__init__(style=discord.ButtonStyle.success, label="⏸", row=1)
         self.parent = parent
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: Interaction):
         await interaction.response.defer()
-        if(self.parent.playState == PlayStates.PLAYING): await self.parent.onStateEnter(PlayStates.PAUSED)
-        else: await self.parent.onStateEnter(PlayStates.PLAYING)
+        self.parent.playPauseButtonPressed()
 
-musicPath = os.getcwd() + "\Music"
-@client.tree.command(name="musiccommand", description="tests to make a music play", guild=discord.Object(574438245505433640))
-async def playMusic(interaction: discord.Interaction):
-    voice_channel = interaction.user.voice.channel
-    if(voice_channel != None):
-        vc = await voice_channel.connect()
-        sound = random.choice(os.listdir(musicPath))
-        file = os.path.join(musicPath, sound)
-        try:
-            await interaction.response.send_message(f"Playing {sound}")
-            vc.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=file))
-            while vc.is_playing():
-                await asyncio.sleep(.1)
-        except Exception as e:
-            print(e)
+class SkipFowardButton(discord.ui.Button):
+    parent:PlaySessionView = None
 
-        await interaction.guild.voice_client.disconnect()
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="⏭", row=2)
+        self.parent = parent
 
-activeSessions = {}
+    async def callback(self, interaction: Interaction):
+        await interaction.response.defer()
+        await self.parent.skipFoward()
+        return await super().callback(interaction)
+
+class SkipBackwardsButton(discord.ui.Button):
+    parent:PlaySessionView = None
+
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="⏮", row=2)
+        self.parent = parent
+
+class LoopButton(discord.ui.Button):
+    parent:PlaySessionView = None
+
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="↻",row=2)
+        self.parent = parent
+
+class VolumeUpButton(discord.ui.Button):
+    parent:PlaySessionView = None
+
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="↑", row=1)
+        self.parent = parent
+
+class VolumeDownButton(discord.ui.Button):
+    parent:PlaySessionView = None
+
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="↓", row=1)
+        self.parent = parent
+
+class BattleButton(discord.ui.Button):
+    parent:PlaySessionView = None
+
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="Battle", row=0)
+        self.parent = parent
+
+    async def callback(self, interaction) -> Any:
+        await interaction.response.defer()
+        await self.parent.changeGenre(Genre.Battle)
+
+class TavernButton(discord.ui.Button):
+    parent:PlaySessionView = None
+
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="Tavern", row=0)
+        self.parent = parent
+
+    async def callback(self, interaction) -> Any:
+        await interaction.response.defer()
+        await self.parent.changeGenre(Genre.Tavern)
+
+class AdventuringButton(discord.ui.Button):
+    parent:PlaySessionView = None
+
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="Adventuring", row=0)
+        self.parent = parent
+
+    async def callback(self, interaction) -> Any:
+        await interaction.response.defer()
+        await self.parent.changeGenre(Genre.Adventuring)
+
+class BossButton(discord.ui.Button):
+    parent:PlaySessionView = None
+
+    def __init__(self, parent:PlaySessionView):
+        super().__init__(style=discord.ButtonStyle.gray, label="Boss", row=0)
+        self.parent = parent
+
+    async def callback(self, interaction) -> Any:
+        await interaction.response.defer()
+        await self.parent.changeGenre(Genre.Boss)
 
 @client.tree.command(name="play", description="plays music", guild=discord.Object(574438245505433640))
 async def play(interaction: discord.Interaction):
@@ -139,6 +304,7 @@ async def on_ready():
     global amOnline
     amOnline = True
     await client.tree.sync(guild=discord.Object(id=574438245505433640))
+    #await client.tree.sync(guild=discord.Object(id=732703322930151760))
     print('Logged in as {0.user}'.format(client))
 
 client.run(TOKEN)
