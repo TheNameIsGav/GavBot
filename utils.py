@@ -82,4 +82,28 @@ def clamp(n, min, max):
     elif n > max: return max
     else: return n
 
+
+import re
+def rolldice(dice_string:str):
+    """
+    This functions don't fucking work yet. 
+    """
+    
+    pattern = re.compile(
+        r"""
+        (?P<dice_count>.\d+)
+        d
+        (?P<severity>.\d+)
+        (?P<everything_else>.*)?
+        """, re.IGNORECASE)
+
+    match = re.search("""(?P<dice_count>.\d+)d(?P<severity>.\d+)(?P<everything_else>.*)?""", dice_string)
+    num_dice = int(match.group("num_dice"))
+    severity = int(match.group("severity"))
+    everything_else = int(match.group("everything_else"))
+    
+    print(num_dice)
+    print(severity)
+    print(everything_else)
+
 #endregion

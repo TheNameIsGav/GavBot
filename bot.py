@@ -2,11 +2,13 @@ import os
 from typing import Any, List, Optional, Union
 import discord
 from discord.ext import commands
+from discord import app_commands
 from discord.interactions import Interaction
 from dotenv import load_dotenv
 import random
 import music_commands as mc
 from utils import *
+from crafting import *
 
 load_dotenv()
 
@@ -16,6 +18,11 @@ amOnline = False
 client = commands.Bot(command_prefix="$", intents=intents)
 
 TOKEN = os.getenv('DISCORD_TOKEN')
+TEST_GUILD = discord.Object(os.getenv('DISCORD_TEST_GUILD'))
+LIVE_GUILD = discord.Object(os.getenv('DISCORD_LIVE_GUILD'))
+
+#Change this line to change which guild to activate on
+GUILD = LIVE_GUILD
 
 activeSessions = {}
 
@@ -138,18 +145,25 @@ class PlaySessionView(discord.ui.View):
         self.playSong()
         pass
 
-@client.tree.command(name="play", description="plays music", guild=discord.Object(574438245505433640))
+@client.tree.command(name="play", description="plays music", guild=GUILD)
 async def play(interaction: discord.Interaction):
     playsession = PlaySessionView(interaction)
     await playsession.startup()
     pass
 
+
+@client.tree.command(name="harvest", description="Given a single number, harvest with that number", guild=GUILD)
+@app_commands.describe(roll="The number rolled for harvesting")
+async def harvest(interaction: discord.Interaction, roll:int):
+    j = harvest_string(roll)
+    await interaction.response.send_message(f"Harvested {j}")
+
+
 @client.event
 async def on_ready():
     global amOnline
     amOnline = True
-    await client.tree.sync(guild=discord.Object(id=574438245505433640))
-    #await client.tree.sync(guild=discord.Object(id=732703322930151760))
+    await client.tree.sync(guild=GUILD)
     print('Logged in as {0.user}'.format(client))
 
 client.run(TOKEN)
