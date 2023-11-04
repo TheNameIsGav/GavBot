@@ -29,8 +29,8 @@ async def syncCogs(guild=None):
 async def on_ready():
     global amOnline
     amOnline = True
-    await syncCogs(guild=LIVE_GUILD)
-    #await client.tree.sync(guild=LIVE_GUILD)
+    await syncCogs(guild=GUILD)
+    await client.tree.sync(guild=GUILD)
     print('Logged in as {0.user}'.format(client))
 
 client.run(TOKEN)
