@@ -108,99 +108,50 @@ def rolldice(dice_string:str):
 
 #endregion
 
-#region File Handling
-def register_channel(interaction: discord.Interaction):
-    if(os.path.exists(os.path.join(os.getcwd(), f"Secret Santa/{interaction.channel_id}"))):
-        return "Channel already registered."
 
-    os.mkdir(os.path.join(os.getcwd(), f"Secret Santa/{interaction.channel_id}"))
-    if(os.path.exists(os.path.join(os.getcwd(), f"Secret Santa/{interaction.channel_id}"))):
-        return "Registered this channel for Secret Santa successfully!"
-    else:
-        return "Failed to register channel successfully, contact Gav."
+def is_registered_channel(rootpath, channel_id):
+    with open(f"{os.path.join(rootpath, 'Valid Guilds')}", "r") as f:
+        lines = f.readlines()
+
+        for line in lines:
+            if int(line.strip()) == channel_id:
+                return True
+        return False
+    
+def users_participating_channels(rootpath, user_id):
+    with open(f"{os.path.join(rootpath, f'{user_id}')}", "r") as f:
+        lines = f.readlines()
+        lines = lines[1:]
+        channel_ids = [int(channel_id) for channel_id in lines[0].split(',')]
+        return channel_ids
+    
+def is_registered_user(rootpath, user_id):
+    for subdirs, dirs, files in os.walk(rootpath):
+        for file in files:
+            if(int(file) == user_id):
+                return True
+    return False
+
+def get_users_wishlist(rootpath, user_id):
+    lines = []
+    with open(f"{os.path.join(rootpath, f'{user_id}')}", "r") as f:
+        lines = f.readlines()
+    return lines[3:]
         
-def register_user(client:discord.Client, guild:discord.Guild, interaction:discord.Interaction, address:str):
-    """
-    Registers a user to a guild
-    """
-    channel_id = match_guild_to_channel(client, guild)
-    if channel_id == None:
-        return "Something went wrong. Contact Gav"
+def remove_item_from_wishlist(rootpath, user_id, index):
+    index = index - 1
+    lines = []
+    with open(f"{os.path.join(rootpath, f'{user_id}')}", "r") as f:
+        lines = f.readlines()
 
-    channel_path = os.path.join(os.getcwd(), f"Secret Santa/{channel_id}")
-    target_path = os.path.join(os.getcwd(), f"Secret Santa/{channel_id}/{interaction.user.id}")
-
-    if(not os.path.exists(channel_path)):
-        return "Channel appears to not be registered for secret santa."
-    if(os.path.exists(target_path)):
-        return "User already registered in this channel. To manage your wishlist or address, please open the Secret Santa UI again."
-    z = open(f"{target_path}", "x")
-    z.close()
-    if(os.path.exists(target_path)):
-        with open(target_path, 'w') as f:
-            f.write(address)
-        return "Registered user successfully. To manage your wishlist or address, please open the Secret Santa UI again."
+    wishlist_items = lines[3:]
+    pre_content = lines[:3]
+    if index in range(0, len(wishlist_items)):
+        item = wishlist_items[index]
+        del wishlist_items[index]
+        with open(f"{os.path.join(rootpath, f'{user_id}')}", "w") as f:
+            f.writelines(pre_content)
+            f.writelines(wishlist_items)
+        return f"Removed item {item}"
     else:
-        return "Failed to register user successfully."
-
-def retrieve_channel_paths():
-    channel_dirs = []
-    for subdirs, dirs, files in os.walk(os.path.join(os.getcwd(), "Secret Santa")):
-        channel_dirs.append(subdirs)
-    return channel_dirs[1:]
-
-def match_guild_to_channel(client:discord.Client, guild:discord.Guild):
-    list_of_channel_ids = [os.path.basename(os.path.normpath(x)) for x in retrieve_channel_paths()]
-    for channel_id in list_of_channel_ids:
-        full_channel = client.get_channel(int(channel_id))
-        maybe_guild = full_channel.guild.id
-        if maybe_guild == guild.id:
-            return channel_id
-    return None
-
-
-
-#endregion
-
-#region User Management
-
-async def fetch_guild(client:discord.Client, id:int):
-    if client.is_ready():
-        return client.get_guild(id)
-    
-async def fetch_channel(client:discord.Client, id:int):
-    if client.is_ready():
-        return client.get_channel(id)
-    
-async def fetch_channel_members(client:discord.Client, channel:discord.TextChannel):
-    if client.is_ready():
-        return channel.members
-
-async def retrieve_users_registration(client:discord.Client, interaction: discord.Interaction):
-    """
-    Returns a list of Discord.Guilds that the user is registered in
-    """
-    channel_paths = retrieve_channel_paths()
-    registered_channels = []
-    for channel in channel_paths:
-        for subdirs, dirs, users in os.walk(os.path.join(channel)):
-            for user in users:
-                if int(user) == interaction.user.id:
-                    registered_channels.append(await fetch_channel(client, int(os.path.basename(os.path.normpath(channel)))))
-
-    registered_guilds = [channel.guild for channel in registered_channels]
-    return registered_guilds
-
-async def retrieve_guilds_part_of(client:discord.Client, interaction:discord.Interaction):
-    """
-    Retruns a list of Discord.Guilds that a user is in but not necessarily registered for
-    """
-    channel_paths = retrieve_channel_paths()
-    guilds = []
-    for channel in channel_paths:
-        discord_channel:discord.TextChannel = await fetch_channel(client, int(os.path.basename(os.path.normpath(channel))))
-        for member in discord_channel.members:
-            if(member.id == interaction.user.id):
-                guilds.append(discord_channel.guild)
-    return guilds
-#endregion
+        return "Invalid item number to remove."

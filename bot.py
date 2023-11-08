@@ -19,7 +19,7 @@ TEST_GUILD = discord.Object(os.getenv('DISCORD_TEST_GUILD'))
 LIVE_GUILD = discord.Object(os.getenv('DISCORD_LIVE_GUILD'))
 
 #Change this line to change which guild to activate on
-GUILD = TEST_GUILD
+GUILD = None
 
 async def syncCogs(guild=None):
     await client.add_cog(Crafting(client), guild=guild)

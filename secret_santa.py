@@ -28,137 +28,159 @@ class SecretSanta(commands.GroupCog, group_name="secret-santa"):
     def __init__(self, client: commands.Bot):
         self.client = client
         self._last_member = None
+        self.rootpath = os.path.join(os.getcwd(), "Secret Santa")
 
-    #region Async Commands            
-    async def open_santa_ui(self, interaction: discord.Interaction):
-        guilds = await retrieve_guilds_part_of(self.client, interaction)
-        secretSantaView = SecretSantaView(self.client, interaction)
-        await secretSantaView.startup(guilds)
-        pass
-    #endregion
-
-    #region Discord Commands
-    @app_commands.command(name="cogtest")
-    async def ping(self, interaction:discord.Interaction):
-        bot_latency = round(self.client.latency * 1000)
-        await interaction.response.send_message(f"Pong! {bot_latency} ms.")
-
-    @app_commands.command(name="register_secret_santa", description="Registers a guild to participate in Secret Santa if not already registered.")
-    async def register_secret_santa(self, interaction: discord.Interaction):
-        channelType = interaction.channel.type
-        if(channelType == discord.ChannelType.private and interaction.permissions.administrator):
-            await interaction.response.send_message("Please re-run command in a valid guild or as an administrator!")
+    @app_commands.command(name="register", description="Registers a user to participate in this channels Secret Santa")
+    async def register(self, interaction:discord.Interaction):
+        if(not is_registered_channel(self.rootpath, interaction.channel_id)):
+            await interaction.response.send_message("I'm afraid the channel you ran this command in is not participating in Secret Santa. Please try this command in a registered channel. If you believe this message to be in error, please contact Gav.")
             return
-        response = register_channel(interaction)
-        await interaction.response.send_message(response)
-
-    @app_commands.command(name="open_secret_santa", description="Opens the secret Santa Homepage Panel")
-    async def open_secret_santa(self, interaction: discord.Interaction):
-        channelType = interaction.channel.type
-        # if(channelType != discord.ChannelType.private):
-        #     await interaction.response.send_message("Please re-run command in our dms!")
-        #     return
-        await self.open_santa_ui(interaction)
-
-    #endregion
-
-#region UI
-class GuildSelectMenu(discord.ui.Select):
-    def __init__(self):
-        super().__init__()
-    
-    def configure_options(self, guilds:[discord.Guild]):
-        if len(guilds) == 0:
-            self.disabled = True
-            self.add_option(label="You probably shouldn't be seeing this. If you are, contact Gav.")
-            return
-        for guild in guilds:
-            self.add_option(label=guild.name, value=guild.id)
-
-
-class SecretSantaView(discord.ui.View):
-    interaction:discord.Interaction = None
-    client:discord.Client = None
-    embed = None
-    selectMenu = None
-    selectedGuild = None
-    addy = None
-
-    def __init__(self, client:discord.Client, interaction:discord.Interaction):
-        super().__init__(timeout=None)
-        self.interaction = interaction
-        self.client = client
-
-        self.selectMenu = GuildSelectMenu()
-
-        self.manageButton = ManageButton()
-        self.manageButton.callback = self.manage_callback
-
-        self.registerButton = RegisterButton()
-        self.registerButton.callback = self.register_callback
-
-        self.deregisterButton = DeregisterButton()
-        self.deregisterButton.callback = self.deregister_callback
-
-    async def startup(self, guilds:[discord.Guild]):
-
-        if(guilds == []):
-            await self.interaction.response.send_message("It would appear that you're not a part of any channel in any guild that is participating in Secret Santa. Please contact an admin if you think this is in error.")
-
-        self.selectMenu.configure_options(guilds)
-        self.selectMenu.callback = self.guild_selection_callback
-        self.add_item(self.selectMenu)
-
-        await self.interaction.response.send_message("Please select the Server you like to manage or register for.", view=self)
-
-    async def guild_selection_callback(self, interaction:discord.Interaction):
-        selectedGuild = self.selectMenu.values[0]
-        print(f"Selected {selectedGuild}")
-
-        selectedGuild = await fetch_guild(self.client, int(selectedGuild))
-        self.selectedGuild = selectedGuild
-        self.remove_item(self.selectMenu)
-        if selectedGuild in await retrieve_users_registration(self.client, self.interaction):
-            self.add_item(self.manageButton)
-            self.add_item(self.deregisterButton)
+        
+        target_path = os.path.join(self.rootpath, f'{interaction.user.id}')
+        if(not os.path.exists(target_path)):
+           with open(f"{target_path}", "x") as f:
+               f.write(f'{interaction.user.global_name}\n')
+               f.write(f'{interaction.channel_id}')    
+               await interaction.response.send_message("Registered successfully! Please use the /address command to update your address, and the /secret-santa-help command to view additional functions!")
         else:
-            self.add_item(self.registerButton)
-        self.selectMenu.disabled = True
-        await interaction.response.send_message(f"Selected Guild {selectedGuild.name}", view=self)
+            channels = users_participating_channels(self.rootpath, interaction.user.id)
+            if interaction.channel_id in channels:
+                await interaction.response.send_message("You appear to already be registered to participate in Secret Santa here! Please use the /secret-santa-help command to view additional functions!")
+                return
+            else:
+                lines = []
+                with open(target_path, "r") as f:
+                    lines = f.readlines()
+                    lines[1] = lines[1].strip() + f",{interaction.channel_id}\n"
+                with open(target_path, "w") as f:
+                    f.writelines(lines)
+                await interaction.response.send_message("Registered successfully! Please use the /address command to update your address, and the /secret-santa-help command to view additional functions!")
+                return
+
+    @app_commands.command(name="register_guild_channel", description="Registers a channel to participate in Secret Santa")
+    async def register_guild_channel(self, interaction:discord.Interaction):
+        lines = []
+
+        if(not interaction.user.guild_permissions.administrator and not self.client.is_owner == interaction.user):
+            await interaction.response.send_message("I'm afraid you are not an administrator. Please contact an admin to register this guild for Secret Santa")
+            return
+
+        if(is_registered_channel(self.rootpath, interaction.channel_id)):
+            await interaction.response.send_message("Channel already registered!")
+            return
+
+        with open(f"{os.path.join(self.rootpath, 'Valid Guilds')}", "a") as f:
+            f.write(f"{interaction.channel_id}\n")
+            await interaction.response.send_message("Registered this channel for Secret Santa successfully!")
+            return
         
-    async def register_callback(self, interaction:discord.Interaction):
-        self.addy = AddressInput()
-        self.addy.on_submit = self.address_submit
-        self.registerButton.disabled = True
-        await interaction.response.send_modal(self.addy)
+    @app_commands.command(name="address", description="sets the address of the user")
+    async def address(self,interaction:discord.Interaction): 
+        if(is_registered_user(self.rootpath, interaction.user.id)):
+            self.address_feedback = AddressInput()
+            self.address_feedback.on_submit = self.address_callback
+            await interaction.response.send_modal(self.address_feedback)
+        else:
+            await interaction.response.send_message("You are not registered for any Secret Santa")
+
+    async def address_callback(self, interaction:discord.Interaction):
+        address = self.address_feedback.address.value
+
+        lines = []
+        with open(f"{os.path.join(self.rootpath, f'{interaction.user.id}')}", "r") as f:
+            lines = f.readlines()
+
+        if len(lines) == 2:
+            with open(f"{os.path.join(self.rootpath, f'{interaction.user.id}')}", "w") as f:
+                f.writelines(lines)
+                f.write("\n" + address + "\n")
+        else:
+            with open(f"{os.path.join(self.rootpath, f'{interaction.user.id}')}", "w") as f:
+                f.writelines(lines[:2])
+                f.write("\n" + address + "\n")
+                f.writelines(lines[2:])
+
+        await interaction.response.send_message(f"Registered address as {address}", ephemeral=True)
+
+    @app_commands.command(name="wishlist", description="Adds an item to the users wishlist")
+    async def wishlist(self, interaction:discord.Interaction):
+        if(is_registered_user(self.rootpath, interaction.user.id)):
+            self.wishlist_feedback = WishlistInput()
+            self.wishlist_feedback.on_submit = self.wishlist_callback
+            await interaction.response.send_modal(self.wishlist_feedback)
+        else:
+            await interaction.response.send_message("You are not registered for any Secret Santa")
+
+    async def wishlist_callback(self, interaction:discord.Interaction):
+        item = self.wishlist_feedback.item.value
+        lines = []
+        with open(f"{os.path.join(self.rootpath, f'{interaction.user.id}')}", "r") as f:
+            lines = f.readlines()
+
+        if len(lines) == 3:
+            with open(f"{os.path.join(self.rootpath, f'{interaction.user.id}')}", "w") as f:
+                f.writelines(lines)
+                f.write(item + "\n")
+        else:
+            with open(f"{os.path.join(self.rootpath, f'{interaction.user.id}')}", "a") as f:
+                f.write(item + "\n")
+
+        await interaction.response.send_message(f"Added {item} to wishlist!", ephemeral=True)
+    
+    @app_commands.command(name="view_wishlist", description="View your current wishlist")
+    async def view_wishlist(self, interaction:discord.Interaction):
+        if(not is_registered_user(self.rootpath, interaction.user.id)):
+            await interaction.response.send_message("You are not registered for any Secret Santa")
+            return
         
-    async def manage_callback(self, interaction:discord.Interaction):
-        self.manageButton.disabled = True
-        await interaction.response.send_message("Pushed manage")
+        items = get_users_wishlist(self.rootpath, interaction.user.id)
+        self.embed = discord.Embed()
+        self.embed.title = "Wishlist Items"
+        for i in range(0, len(items)):
+            self.embed.add_field(name=f"Item {i+1}", value=items[i], inline=False)
+
+        await interaction.response.send_message(embed=self.embed, ephemeral=True)
+
+    @app_commands.command(name="remove_item", description="removes an item from your wishlist")
+    async def remove_item(self, interaction:discord.Interaction, index:int):
+        """Removes an item from your wishlist - irreversable
+
+        Parameters
+        -----------
+        Item _: int
+            The item number to remove
+        """
+
+        if(not is_registered_user(self.rootpath, interaction.user.id)):
+            await interaction.response.send_message("You are not registered for any Secret Santa")
+            return
         
-    async def deregister_callback(self, interaction:discord.Interaction):
-        self.deregisterButton.disabled = True
-        await interaction.response.send_message("Pushed deregister")
+        await interaction.response.send_message(remove_item_from_wishlist(self.rootpath, interaction.user.id, index), ephemeral=True)
+    
+    @app_commands.command(name="help", description="Lists out the commands for Secret Santa")
+    async def help(self, interaction:discord.Interaction):
+        #remove_item
+        #view_wishlist
+        #wishlist
+        #address
+        #register
 
-    async def address_submit(self, interaction:discord.Interaction):
-        await interaction.response.send_message(register_user(self.client, self.selectedGuild, interaction, self.addy.address.value), ephemeral=True)
-        
-
-class RegisterButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(style=discord.ButtonStyle.success, label="Register")
-
-class ManageButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(style = discord.ButtonStyle.blurple, label="Manage")
-
-class DeregisterButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(style= discord.ButtonStyle.red, label="Deregister")
-
+        self.embed = discord.Embed()
+        self.embed.add_field(inline=False, name="/secret-santa remove_item <index>", value="Removes the item in your wishlist at index")
+        self.embed.add_field(inline=False, name="/secret-santa view_wishlist", value="View your wishlist. No one else can see this.")
+        self.embed.add_field(inline=False, name="/secret-santa wishlist", value="Opens a dialogue box for you to enter an item to put on your wishlist. No one else can see this.")
+        self.embed.add_field(inline=False, name="/secret-santa address", value="Opens a dialgoue box for you to enter your address. Use again to modify. No one else can see this.")
+        self.embed.add_field(inline=False, name="/secret-santa register", value="Registers you to participate in Secret Santa. Only usable in the channel where Secret Santa began.")
+        await interaction.response.send_message(embed=self.embed)
+    
 class AddressInput(discord.ui.Modal, title="Address"):
     address = discord.ui.TextInput(
         label="Address",
         placeholder="1111 Thing St. Taylor Swift, Austin TX. 78707"
     )
-#endregion
+
+class WishlistInput(discord.ui.Modal, title="Item you'd like"):
+    item=discord.ui.TextInput(
+        label="Item",
+        placeholder="Consider putting your Amazon Wishlist as one of your items!"
+    )
