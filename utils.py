@@ -137,6 +137,12 @@ def get_users_wishlist(rootpath, user_id):
     with open(f"{os.path.join(rootpath, f'{user_id}')}", "r") as f:
         lines = f.readlines()
     return lines[3:]
+
+def get_users_address(rootpath, user_id):
+    lines = []
+    with open(f"{os.path.join(rootpath, f'{user_id}')}", "r") as f:
+        lines = f.readlines()
+    return lines[2]
         
 def remove_item_from_wishlist(rootpath, user_id, index):
     index = index - 1
@@ -155,3 +161,66 @@ def remove_item_from_wishlist(rootpath, user_id, index):
         return f"Removed item {item}"
     else:
         return "Invalid item number to remove."
+    
+def get_participating_users(rootpath, channel_id:int):
+    """
+    Gets a list of user id's as int's who are participating in a channel
+    """
+    user_ids = []
+
+    for subdirs, dirs, files in os.walk(rootpath):
+        for file in files:
+            if file != 'Valid Guilds' and file != "MATCHUPS":
+                with open(os.path.join(rootpath, file), "r") as f:
+                    lines = f.readlines()
+                    guilds = lines[1]
+                    guilds = [int(x) for x in guilds.split(",")]
+                    if channel_id in guilds:
+                        user_ids.append(int(file)) #Change this to int(file)
+
+    return user_ids     
+
+exclusions:[()] = [
+    (121406882865872901, 306948002483011584), #Gav cannot get Dax
+    (121406882865872901, 106048316420141056), #Gav cannot get Tristan
+    (106048316420141056, 121406882865872901), #Tristan cannot get Gav
+    (189567695371370496, 223619701027110913), #Sam cannot have Christina
+    (106048316420141056, 227610442309042176), #Tristan cannot get Alan
+    (210977628545351680, 189567695371370496), #Conan cannot get Sam
+    (214079671652843521, 121406882865872901), #Jedi cannot get Gav
+    (306948002483011584, 106048316420141056), #Dax cannot get Tristan
+    (223619701027110913, 214079671652843521), #Christina cannot get Jedi
+]
+
+def matchup(user_ids:[int]):
+    """
+    Given a list of users generates a Secret Santa List
+    """
+    success = False
+    outcome:[()] = []
+    attempts = 0
+
+    while(not success and attempts < 100):
+        the_hat:[int] = user_ids.copy()
+        outcome:[()] = []
+        for user in user_ids:
+            target = random.choice(the_hat)
+            the_hat.remove(target)
+            outcome.append((user, target))
+
+        success = True
+        for items in outcome:
+            if items[0] == items[1] or items in exclusions:
+                success = False
+     
+        attempts += 1
+        if(attempts == 100): 
+            return None
+    
+    text = ""
+    for item in outcome:
+        text += f"{item[0]} got {item[1]}\n"
+        with open(os.path.join(os.getcwd(), "Secret Santa", "MATCHUPS"), "w") as f:
+            f.writelines(text)
+    
+    return outcome
