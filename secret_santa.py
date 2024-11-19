@@ -6,6 +6,7 @@ from discord.interactions import Interaction
 from utils import *
 import datetime
 import os
+import logging
 
 #You should be able to see the current participants
 #You should be able to add your address

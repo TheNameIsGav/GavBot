@@ -1,10 +1,13 @@
 import os
 import discord
+import logging
+import logging.config
 from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
 from crafting import *
 from secret_santa import *
+from task import *
 
 load_dotenv()
 
@@ -19,18 +22,31 @@ TEST_GUILD = discord.Object(os.getenv('DISCORD_TEST_GUILD'))
 LIVE_GUILD = discord.Object(os.getenv('DISCORD_LIVE_GUILD'))
 
 #Change this line to change which guild to activate on
-GUILD = None
+GUILD = TEST_GUILD
 
 async def syncCogs(guild=None):
     await client.add_cog(Crafting(client), guild=guild)
     await client.add_cog(SecretSanta(client), guild=guild)
+    await client.add_cog(TaskSession(client), guild=guild)
 
 @client.event
 async def on_ready():
     global amOnline
     amOnline = True
-    await syncCogs(guild=GUILD)
+    if(GUILD == None):
+        await syncCogs()
+    else:
+        await syncCogs(guild=GUILD)
     await client.tree.sync(guild=GUILD)
-    print('Logged in as {0.user}'.format(client))
+    
+    date = datetime.datetime.today().strftime("%Y-%m-%d")
+    target_path = f'{os.path.join(os.getcwd(), "Logs", f"{date}")}'
+    logging.basicConfig(filename=target_path, filemode="a", encoding='utf-8', level=logging.DEBUG)
+    Log("Client Ready", loggerName="main")
+
+@client.event
+async def close():
+    Log("Closed Client", loggerName="main")
+    Log("------------", loggerName="main")
 
 client.run(TOKEN)

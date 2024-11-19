@@ -2,6 +2,7 @@ import discord
 from enum import Enum
 import os
 import random
+import datetime
 
 class Genre(Enum):
     Battle = 0
@@ -224,3 +225,19 @@ def matchup(user_ids:[int]):
             f.writelines(text)
     
     return outcome
+
+import logging
+
+class LogStatus(Enum):
+    INF = 1
+    ERR = 2 
+
+def Log(incomingStr, logStatus: LogStatus = LogStatus.INF, loggerName:str = None):
+    log = logging.getLogger(loggerName)
+    transformed_string = f"{datetime.datetime.now()} -> {incomingStr}"
+    if(logStatus == LogStatus.INF):
+        print(f"[INFO:{loggerName}] {transformed_string}")
+        log.info(transformed_string)
+    elif(logStatus == LogStatus.ERR):
+        print(f"[ERROR:{loggerName}] {transformed_string}")
+        log.error(transformed_string)
