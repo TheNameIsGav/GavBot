@@ -131,5 +131,12 @@ dmypy.json
 #Personal Stuff
 .add
 *.wsh
-/Music
-/Secret Santa
+
+Music/*
+!Music/.gitkeep
+
+Secret Santa/*
+!Secret Santa/.gitkeep
+
+Task/*
+!Task/.gitkeep
