@@ -138,5 +138,8 @@ Music/*
 Secret Santa/*
 !Secret Santa/.gitkeep
 
+Logs/*
+!Logs/.gitkeep
+
 Task/*
 !Task/.gitkeep
