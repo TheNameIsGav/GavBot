@@ -117,7 +117,7 @@ class TextGenerator(commands.GroupCog, group_name="text-generation"):
         else:
           await interaction.followup.send(f"{summary}")
 
-    @app_commands.Cog.listener()
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """Responds when the bot is mentioned."""
         if message.author.bot:
