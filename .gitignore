@@ -143,3 +143,5 @@ Logs/*
 
 Task/*
 !Task/.gitkeep
+
+GavBot
