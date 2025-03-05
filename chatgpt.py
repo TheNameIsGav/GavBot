@@ -21,15 +21,15 @@ import datetime
 
 MODEL = "gpt-4o-mini"
 
-#DISCORD_USER = "You are a Gen Z Discord User, intent on start inflammatory conversations. You should include emojis in your response"
+DISCORD_USER = "You are a Gen Z Discord User, intent on start inflammatory conversations. You should include emojis in your response"
 SHAKESPEARE = "You are William Shakespeare. You should phrase your response in iambic pentameter."
 COWBOY = "You are a Cowboy in the Wild West era in America. Your responses should reflect this."
-#DEPRESSED = "You are despressed. Everything is awful and your responses should reflect this. "
-#ALLITERATOR = "You should use AS MUCH ALLITERATION AS POSSIBLE IN YOUR RESPONSE."
+DEPRESSED = "You are despressed. Everything is awful and your responses should reflect this. "
+ALLITERATOR = "You should use AS MUCH ALLITERATION AS POSSIBLE IN YOUR RESPONSE."
 I_HATE_TASHA = "You are someone who DESPISES someone named Tasha. You need to bring it up all the time."
 I_HATE_ETHAN = "You are someone who DESPISES someone named Ethan. You need to bring it up all the time."
 
-PERSONALITES = [SHAKESPEARE, COWBOY, I_HATE_TASHA, I_HATE_ETHAN]
+PERSONALITES = [COWBOY, I_HATE_TASHA, I_HATE_ETHAN]
 
 #TODO
 # add in command to stop the conversation
@@ -56,8 +56,9 @@ class TextGenerator(commands.GroupCog, group_name="text-generation"):
         """Sends the text to OpenAI's API for summarization."""
         for attempt in range(max_retries):
             try:
+              content = f"{self.fetch_personalites()} {direction}"
               formatted_messages = [
-                 {"role": "system", "content": f"{self.fetch_personalites()} {direction}"},
+                 {"role": "system", "content": content},
                  {"role": "user", "content": text}
               ]
               response = await asyncio.to_thread(self.completion_with_backoff, formatted_messages)
@@ -98,7 +99,7 @@ class TextGenerator(commands.GroupCog, group_name="text-generation"):
             return
         
         text = "\n".join([f"{msg.author.name}: {msg.content}" for msg in messages])
-        summary = await self.generate_text(text, "Summarize the following conversation.")
+        summary = await self.generate_text("Summarize the following conversation.", text)
 
         if summary == -1:
            await interaction.followup.send("An error occured, message too long")
@@ -115,3 +116,13 @@ class TextGenerator(commands.GroupCog, group_name="text-generation"):
            await interaction.followup.send("An error occured, message too long")
         else:
           await interaction.followup.send(f"{summary}")
+
+    @app_commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        """Responds when the bot is mentioned."""
+        if message.author.bot:
+            return  # Ignore messages from other bots
+
+        if self.bot.user in message.mentions:  # Check if the bot was mentioned
+            summary = await self.generate_text("", message.content)
+            await message.channel.send(f"Hello {message.author.mention}. Here's what I found: {summary}")

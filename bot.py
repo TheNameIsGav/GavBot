@@ -15,6 +15,7 @@ load_dotenv()
 intents = discord.Intents.all()
 intents.members = True
 intents.messages = True
+intents.message_content=True
 amOnline = False
 client = commands.Bot(command_prefix="$", intents=intents)
 
@@ -44,7 +45,7 @@ async def on_ready():
     
     date = datetime.datetime.today().strftime("%Y-%m-%d")
     target_path = f'{os.path.join(os.getcwd(), "Logs", f"{date}")}'
-    logging.basicConfig(filename=target_path, filemode="a", encoding='utf-8', level=logging.DEBUG)
+    #logging.basicConfig(filename=target_path, filemode="a", encoding='utf-8', level=logging.DEBUG)
     Log("Client Ready", loggerName="main")
 
 @client.event
