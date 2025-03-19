@@ -6,7 +6,7 @@ import re
 from utils import Log
 
 PREPOSITIONS = [
-    "a", "an", "as", "at", "but", "be", "by", "for", "from", "in", "it", "like", "of", "to", "the", "that", "this", "than", "then", "i", "me", "you", ""
+    "a", "an", "as", "at", "and", "but", "be", "by", "for", "from", "in", "it", "like", "of", "to", "the", "that", "this", "than", "then", "i", "me", "you", ""
 ]
 
 class UserStats(commands.Cog):
@@ -16,8 +16,8 @@ class UserStats(commands.Cog):
     async def fetch_message_stats_user(
         self,
         user: discord.User,
-        channel: discord.TextChannel = None,
-        guild: discord.Guild = None,
+        guild: discord.Guild,
+        channel: discord.TextChannel = None
     ):
         """Fetches message stats for a specific user optionally in a specific channel."""
         message_stats = {
@@ -30,8 +30,7 @@ class UserStats(commands.Cog):
             "most_responded_user": "",
             "longest_message": 0
         }
-        if channel is None and guild is None:
-            raise ValueError("Either channel or guild must be provided.")
+
         if channel is None:
             channels = guild.text_channels
         else:
@@ -42,7 +41,12 @@ class UserStats(commands.Cog):
 
         for channel in channels:
             Log(f"Fetching messages from channel: {channel.name}", loggerName="stats")
-            async for message in channel.history(limit=None):
+            count = 0
+            async for message in channel.history(limit=15000).filter(lambda m: m.author.id == user.id):
+                count+=1
+                if(count % 100 == 0):
+                    Log(f"Message count: {count} for channel {channel.name}", loggerName="stats")
+
                 if message.author != user:
                     continue
 
@@ -71,13 +75,16 @@ class UserStats(commands.Cog):
                     message_stats["longest_message"] = message_stats["words"]
 
                 #Get the person that our user replied to the most
-                if message.reference is not None and message.reference.message_id is not None:
-                    msg:discord.PartialMessage = channel.get_partial_message(message.reference.message_id)
-                    reply_id = (await msg.fetch()).author.id
-                    if(reply_id in replied_users.keys()):
-                        replied_users[reply_id] += 1
-                    else:
-                        replied_users[reply_id] = 1
+                try: 
+                    if message.reference is not None and message.reference.message_id is not None:
+                        msg:discord.PartialMessage = channel.get_partial_message(message.reference.message_id)
+                        reply_id = (await msg.fetch()).author.id
+                        if(reply_id in replied_users.keys()):
+                            replied_users[reply_id] += 1
+                        else:
+                            replied_users[reply_id] = 1
+                except discord.NotFound:
+                    print("message not found")
 
                 #Get most used word
                 for word in message.content.split():
@@ -114,7 +121,7 @@ class UserStats(commands.Cog):
         return message_stats
 
     @app_commands.command(
-        name="wordstats", description="Fetches stats for a specific user in a channel"
+        name="wordstats", description="Fetches stats for a user in a channel for the last 15000 message. This takes ~5 mins - be patient."
     )
     async def wordstats(
         self,
@@ -132,7 +139,7 @@ class UserStats(commands.Cog):
         else:
             search_name = channel.name
             message_stats = await self.fetch_message_stats_user(
-                user, channel=channel
+                user, guild=interaction.guild, channel=channel
             )
 
         messages_sent = message_stats["messages"]

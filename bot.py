@@ -46,7 +46,11 @@ async def on_ready():
     Log(f"Synced {len(synced)} command(s).")
     
     date = datetime.datetime.today().strftime("%Y-%m-%d")
-    target_path = f'{os.path.join(os.getcwd(), "Logs", f"{date}")}'
+    path = os.getenv('CUSTOMPATH')
+    target_path = f'{os.path.join(path, f"{date}.log")}'
+    if(not os.path.exists(target_path)):
+        f = open(target_path, "w")
+        f.close()
     logging.basicConfig(
             level=logging.INFO,
             format="[%(asctime)s] %(levelname)s: %(message)s",
