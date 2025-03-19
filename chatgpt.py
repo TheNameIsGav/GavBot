@@ -41,7 +41,7 @@ EXCLUSIONS = [
 # improve the modularity of the generate function. 
 # add logging
 
-class TextGenerator(commands.GroupCog, group_name="text-generation"):
+class TextGenerator(commands.Cog):
     def __init__(self, bot):
         self.client = OpenAI(
           api_key=os.getenv('API_KEY')

@@ -9,6 +9,7 @@ from crafting import *
 from secret_santa import *
 from task import *
 from chatgpt import *
+from stats import *
 
 load_dotenv()
 
@@ -31,6 +32,7 @@ async def syncCogs(guild=None):
     #await client.add_cog(SecretSanta(client), guild=guild)
     #await client.add_cog(TaskSession(client), guild=guild)
     await client.add_cog(TextGenerator(client))
+    await client.add_cog(UserStats(client))
 
 @client.event
 async def on_ready():
@@ -45,7 +47,12 @@ async def on_ready():
     
     date = datetime.datetime.today().strftime("%Y-%m-%d")
     target_path = f'{os.path.join(os.getcwd(), "Logs", f"{date}")}'
-    #logging.basicConfig(filename=target_path, filemode="a", encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(
+            level=logging.INFO,
+            format="[%(asctime)s] %(levelname)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            handlers=[logging.FileHandler(target_path), logging.StreamHandler()],
+        )
     Log("Client Ready", loggerName="main")
 
 @client.event
