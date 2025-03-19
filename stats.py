@@ -42,7 +42,7 @@ class UserStats(commands.Cog):
         for channel in channels:
             Log(f"Fetching messages from channel: {channel.name}", loggerName="stats")
             count = 0
-            async for message in channel.history(limit=15000).filter(lambda m: m.author.id == user.id):
+            async for message in channel.history(limit=15000):
                 count+=1
                 if(count % 100 == 0):
                     Log(f"Message count: {count} for channel {channel.name}", loggerName="stats")
