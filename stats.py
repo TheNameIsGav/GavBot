@@ -6,7 +6,7 @@ import re
 from utils import Log
 
 PREPOSITIONS = [
-    "a", "an", "as", "at", "and", "but", "be", "by", "for", "from", "in", "it", "like", "of", "to", "the", "that", "this", "than", "then", "i", "me", "you", ""
+    "a", "an", "as", "at", "and", "but", "be", "by", "for", "from", "in", "is", "it", "like", "of", "to", "the", "that", "this", "than", "then", "i", "me", "you", ""
 ]
 
 class UserStats(commands.Cog):
@@ -42,59 +42,62 @@ class UserStats(commands.Cog):
         for channel in channels:
             Log(f"Fetching messages from channel: {channel.name}", loggerName="stats")
             count = 0
-            async for message in channel.history(limit=15000):
-                count+=1
-                if(count % 100 == 0):
-                    Log(f"Message count: {count} for channel {channel.name}", loggerName="stats")
+            try:
+                async for message in channel.history(limit=15000):
+                    count+=1
+                    if(count % 100 == 0):
+                        Log(f"Message count: {count} for channel {channel.name}", loggerName="stats")
 
-                if message.author != user:
-                    continue
+                    if message.author != user:
+                        continue
 
-                # Last Sent Message
-                if (
-                    message_stats["last_update"] is None
-                    or message.created_at > message_stats["last_update"]
-                ):
-                    message_stats["last_update"] = message.created_at
+                    # Last Sent Message
+                    if (
+                        message_stats["last_update"] is None
+                        or message.created_at > message_stats["last_update"]
+                    ):
+                        message_stats["last_update"] = message.created_at
 
-                #Message Count
-                message_stats["messages"] += 1
+                    #Message Count
+                    message_stats["messages"] += 1
 
-                #Word Count
-                message_stats["words"] += len(message.content.split())
+                    #Word Count
+                    message_stats["words"] += len(message.content.split())
 
-                #Embeds
-                if message.embeds or message.attachments:
-                    message_stats["embeds"] += 1
+                    #Embeds
+                    if message.embeds or message.attachments:
+                        message_stats["embeds"] += 1
 
-                #Unique Channels
-                message_stats["unique_channels"].add(channel.id)
+                    #Unique Channels
+                    message_stats["unique_channels"].add(channel.id)
 
-                # Longest Message
-                if(message_stats["words"] > message_stats["longest_message"]):
-                    message_stats["longest_message"] = message_stats["words"]
+                    # Longest Message
+                    if(message_stats["words"] > message_stats["longest_message"]):
+                        message_stats["longest_message"] = message_stats["words"]
 
-                #Get the person that our user replied to the most
-                try: 
-                    if message.reference is not None and message.reference.message_id is not None:
-                        msg:discord.PartialMessage = channel.get_partial_message(message.reference.message_id)
-                        reply_id = (await msg.fetch()).author.id
-                        if(reply_id in replied_users.keys()):
-                            replied_users[reply_id] += 1
-                        else:
-                            replied_users[reply_id] = 1
-                except discord.NotFound:
-                    print("message not found")
+                    #Get the person that our user replied to the most
+                    try: 
+                        if message.reference is not None and message.reference.message_id is not None:
+                            msg:discord.PartialMessage = channel.get_partial_message(message.reference.message_id)
+                            reply_id = (await msg.fetch()).author.id
+                            if(reply_id in replied_users.keys()):
+                                replied_users[reply_id] += 1
+                            else:
+                                replied_users[reply_id] = 1
+                    except discord.NotFound:
+                        print("message not found")
 
-                #Get most used word
-                for word in message.content.split():
-                    mod_word = word.strip().lower()
-                    mod_word = re.sub(r'[^a-zA-Z]', '', mod_word)
-                    if(mod_word not in PREPOSITIONS):
-                        if(mod_word in most_used_word.keys()):
-                            most_used_word[mod_word] += 1
-                        else:
-                            most_used_word[mod_word] = 1
+                    #Get most used word
+                    for word in message.content.split():
+                        mod_word = word.strip().lower()
+                        mod_word = re.sub(r'[^a-zA-Z]', '', mod_word)
+                        if(mod_word not in PREPOSITIONS):
+                            if(mod_word in most_used_word.keys()):
+                                most_used_word[mod_word] += 1
+                            else:
+                                most_used_word[mod_word] = 1
+            except:
+                continue
 
         #Get the person that our user replied to the most 
         most_replied_user_IDs = [(k, v) for k, v in sorted(replied_users.items(), key=lambda item: item[1])]
@@ -115,7 +118,9 @@ class UserStats(commands.Cog):
 
         #Most used word
         most_used_words = [(k, v) for k, v in sorted(most_used_word.items(), key=lambda item: item[1])]
+        Log(f"Most used word list {most_used_words}", loggerName="stats")
         most_used_word = most_used_words.pop()
+        Log(f"Most used word {most_used_word}", loggerName="stats")
         message_stats["most_used_word"] = most_used_word
 
         return message_stats

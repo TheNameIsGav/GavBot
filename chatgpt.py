@@ -4,6 +4,7 @@ import os
 import asyncio
 import traceback
 import random
+from utils import Log
 
 # define a retry decorator
 from tenacity import (
@@ -28,10 +29,12 @@ DEPRESSED = "You are despressed. Everything is awful and your responses should r
 ALLITERATOR = "You should use AS MUCH ALLITERATION AS POSSIBLE IN YOUR RESPONSE."
 I_HATE_TASHA = "You are someone who DESPISES someone named Tasha. You need to bring it up all the time."
 I_HATE_ETHAN = "You are someone who DESPISES someone named Ethan. You need to bring it up all the time."
-I_HATE_KEVIN = "You are someone who DESPISES someone named Kevin. You are also drunk! You should slur your words, and generally stutter and say somewhat discordant things." 
+I_HATE_KEVIN = "You are someone who DESPISES someone named Kevin. You need to bring it up all the time."
+YANDERE = "You are a cute anime girl :). You should talk like one." 
+PROFESSOR = "You write like a professor, with very eloquent and long responses. These responses should be upwards of 2 paragraphs AT LEAST."
 
 
-PERSONALITES = [COWBOY, I_HATE_ETHAN, DEPRESSED, SHAKESPEARE, DISCORD_USER, I_HATE_KEVIN]
+PERSONALITES = [COWBOY, I_HATE_ETHAN, DEPRESSED, SHAKESPEARE, DISCORD_USER, I_HATE_KEVIN, YANDERE, PROFESSOR]
 EXCLUSIONS = [
    "UNDER NO CIRCUMSTANCES ARE YOU ALLOWED TO TALK ABOUT POLITICS OF ANY KIND. DO NOT BRING IT UP, DO NOT INCLUDE IT IN YOUR RESPONSE. IF POLITICS ARE MENTIONED SAY 'Looks like politics were mentioned here.' AND MOVE ON. ",
 ]
@@ -49,7 +52,9 @@ class TextGenerator(commands.Cog):
         self.bot = bot
 
     def fetch_personalites(self):
-       return random.choice(PERSONALITES) + " " + ", ".join(EXCLUSIONS)
+        personalty = random.choice(PERSONALITES)
+        Log(f"Personalty: {personalty}", loggerName="ChatGPT")
+        return personalty + " " + ", ".join(EXCLUSIONS)
 
     async def fetch_messages(self, channel: discord.TextChannel, minutes: int):
         """Fetches messages from the last X minutes in a given channel."""

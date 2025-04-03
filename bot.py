@@ -5,8 +5,8 @@ import logging.config
 from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
-from crafting import *
-from secret_santa import *
+from ArchivedCommands.crafting import *
+from ArchivedCommands.secret_santa import *
 from task import *
 from chatgpt import *
 from stats import *
@@ -33,18 +33,12 @@ async def syncCogs(guild=None):
     #await client.add_cog(TaskSession(client), guild=guild)
     await client.add_cog(TextGenerator(client))
     await client.add_cog(UserStats(client))
+    #await client.add_cog(TaskSession(client))
 
 @client.event
 async def on_ready():
     global amOnline
-    amOnline = True
-    if(GUILD == None):
-        await syncCogs()
-    else:
-        await syncCogs(guild=GUILD)
-    synced = await client.tree.sync()
-    Log(f"Synced {len(synced)} command(s).")
-    
+
     date = datetime.datetime.today().strftime("%Y-%m-%d")
     path = os.getenv('CUSTOMPATH')
     target_path = f'{os.path.join(path, f"{date}.log")}'
@@ -57,11 +51,20 @@ async def on_ready():
             datefmt="%Y-%m-%d %H:%M:%S",
             handlers=[logging.FileHandler(target_path), logging.StreamHandler()],
         )
+
+    if(GUILD == None):
+        await syncCogs()
+    else:
+        await syncCogs(guild=GUILD)
+    synced = await client.tree.sync()
+    Log(f"Synced {len(synced)} command(s).")
     Log("Client Ready", loggerName="main")
+    amOnline = True
 
 @client.event
 async def close():
     Log("Closed Client", loggerName="main")
     Log("------------", loggerName="main")
+    logging.shutdown()
 
 client.run(TOKEN)

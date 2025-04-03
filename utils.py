@@ -76,7 +76,7 @@ def pick_song_from_queue(audio_queue:list[str]):
 
 #endregion     
 
-#region Maths
+#region Maths and Time
 
 def clamp(n, min, max):
     if n < min: return min
@@ -107,9 +107,15 @@ def rolldice(dice_string:str):
     print(severity)
     print(everything_else)
 
+def hour_rounder(t:datetime.datetime):
+    """
+    Rounds a given DateTime T to the nearest hour at a 30 min breakpoint
+    """
+    return (t.replace(second=0, microsecond=0, hour=t.hour)+datetime.timedelta(hours=t.minute//30))
+
 #endregion
 
-
+#region Secret Santa
 def is_registered_channel(rootpath, channel_id):
     with open(f"{os.path.join(rootpath, 'Valid Guilds')}", "r") as f:
         lines = f.readlines()
@@ -181,7 +187,7 @@ def get_participating_users(rootpath, channel_id:int):
 
     return user_ids     
 
-exclusions:[()] = [
+exclusions:list[()] = [
     (121406882865872901, 306948002483011584), 
     (121406882865872901, 106048316420141056), 
     (106048316420141056, 121406882865872901), 
@@ -193,17 +199,17 @@ exclusions:[()] = [
     (223619701027110913, 214079671652843521), 
 ]
 
-def matchup(user_ids:[int]):
+def matchup(user_ids:list[int]):
     """
     Given a list of users generates a Secret Santa List
     """
     success = False
-    outcome:[()] = []
+    outcome:list[()] = []
     attempts = 0
 
     while(not success and attempts < 100):
-        the_hat:[int] = user_ids.copy()
-        outcome:[()] = []
+        the_hat:list[int] = user_ids.copy()
+        outcome:list[()] = []
         for user in user_ids:
             target = random.choice(the_hat)
             the_hat.remove(target)
@@ -225,6 +231,9 @@ def matchup(user_ids:[int]):
             f.writelines(text)
     
     return outcome
+#endregion
+
+#region Logging
 
 import logging
 
@@ -234,10 +243,34 @@ class LogStatus(Enum):
 
 def Log(incomingStr, logStatus: LogStatus = LogStatus.INF, loggerName:str = None):
     log = logging.getLogger(loggerName)
-    transformed_string = f"{datetime.datetime.now()} -> {incomingStr}"
+    #update_log_hander(logging.getLogger())
+    transformed_string = f"{incomingStr}"
     if(logStatus == LogStatus.INF):
-        print(f"[INFO: {loggerName}] {transformed_string}")
+        #print(f"[INFO: {loggerName}] {transformed_string}")
         log.info(transformed_string)
     elif(logStatus == LogStatus.ERR):
-        print(f"[ERROR: {loggerName}] {transformed_string}")
+        #print(f"[ERROR: {loggerName}] {transformed_string}")
         log.error(transformed_string)
+    else:
+        print(f"Something weird happened, logging to console:{datetime.datetime.now()} {transformed_string}")
+
+def update_log_hander(logger):
+    log_dir = f"{os.getenv('CUSTOMPATH')}"
+    os.makedirs(log_dir, exist_ok=True)
+    today_str = datetime.datetime.today().strftime(f"%Y-%m-%d")
+    log_filename = os.path.join(log_dir, f"{today_str}.log")
+
+    current_handlers = logger.handlers[:]
+    for handler in current_handlers:
+        if isinstance(handler, logging.FileHandler):
+            if(handler.baseFilename != log_filename):
+                logger.removeHandler(handler)
+                handler.close()
+
+                new_handler = logging.FileHandler(log_filename, mode="a", encoding="utf-8")
+                new_handler.setFormatter("[%(asctime)s] %(levelname)s: %(message)s")
+                logger.addHandler(new_handler)
+                logger.info("Log file updated to today's date")
+
+
+#endregion
