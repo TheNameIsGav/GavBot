@@ -3,13 +3,14 @@ import random
 import math
 from discord.ext import commands
 from discord import app_commands
+from discord.errors import HTTPException
 
 distribution_thresholds = [10, 19, 25, 29]
-harvest_chances = [[40, 30, 20, 5, 5],
-                   [25, 40, 20, 10, 5],
-                   [20, 25, 40, 10, 5],
-                   [10, 25, 25, 30, 10],
-                   [10, 15, 20, 35, 20]
+harvest_chances = [[100, 60, 30, 10, 5],
+                   [100, 75, 35, 15, 5],
+                   [100, 80, 55, 15, 5],
+                   [100, 90, 65, 40, 10],
+                   [100, 90, 75, 55, 20]
                    ]
 harvest_amounts = [1, .75, .5, .25, .25]
 global_affinities = ["Abjuration", "Conjuration", "Divination", 
@@ -25,7 +26,14 @@ class DNDUtils(commands.Cog):
         Log("Rolling bulk harvester", loggerName="dnd_utils")
 
         tiers = [0,0,0,0,0]
-        affinities = []
+        affinities = {"Abjuration" : [0,0,0,0,0],
+                      "Conjuration" : [0,0,0,0,0],
+                      "Divination" : [0,0,0,0,0],
+                      "Enchantment" : [0,0,0,0,0],
+                      "Evocation" : [0,0,0,0,0],
+                      "Illusion" : [0,0,0,0,0],
+                      "Transmutation" : [0,0,0,0,0],
+                      "Necrotic" : [0,0,0,0,0]}
         for num in range(attempts):
             roll = random.randint(1, 20) + skill
             distribution = 0
@@ -44,51 +52,63 @@ class DNDUtils(commands.Cog):
 
             is_affinity = random.randint(1, 10) == 10
             affinity = random.randint(0, 7)
+            school = global_affinities[affinity]
 
             if(roll_100 <= harvest_chances[distribution-1][4]):
                 #tier 5
-                tiers[4] += harvest_amounts[4]
-                if(is_affinity): affinities.append(f"{harvest_amounts[4]} of Tier 5 {global_affinities[affinity]}")
+                if(is_affinity): affinities[school][4] += harvest_amounts[4]
+                else: tiers[4] += harvest_amounts[4]
             elif(roll_100 <= harvest_chances[distribution-1][3]):
                 #tier 4
-                tiers[3] += harvest_amounts[3]
-                if(is_affinity): affinities.append(f"{harvest_amounts[3]} of Tier 4 {global_affinities[affinity]}")
+                if(is_affinity): affinities[school][3] += harvest_amounts[3]
+                else: tiers[3] += harvest_amounts[3]
             elif(roll_100 <= harvest_chances[distribution-1][2]):
                 #tier 3
-                tiers[2] += harvest_amounts[2]
-                if(is_affinity): affinities.append(f"{harvest_amounts[2]} of Tier 3 {global_affinities[affinity]}")
+                if(is_affinity): affinities[school][2] += harvest_amounts[2]
+                else: tiers[2] += harvest_amounts[2]
             elif(roll_100 <= harvest_chances[distribution-1][1]):
                 #tier 2
-                tiers[1] += harvest_amounts[1]
-                if(is_affinity): affinities.append(f"{harvest_amounts[1]} of Tier 2 {global_affinities[affinity]}")
+                if(is_affinity): affinities[school][1] += harvest_amounts[1]
+                else: tiers[1] += harvest_amounts[1]
             elif(roll_100 <= harvest_chances[distribution-1][0]):
                 #tier 1
-                tiers[0] += harvest_amounts[0]
-                if(is_affinity): affinities.append(f"{harvest_amounts[0]} of Tier 1 {global_affinities[affinity]}")
+                if(is_affinity): affinities[school][0] += harvest_amounts[0]
+                else: tiers[0] += harvest_amounts[0]
 
-            Log(f"""Attempt: {num}, 
-Skill Roll: {roll}, 
-Distribution: {distribution}, 
-D100 Roll: {roll_100}
-Affinity: {global_affinities[affinity] if is_affinity else ""}
-Tiers: {tiers}
-=============================""", loggerName="dnd_utils")
+#             Log(f"""Attempt: {num}, 
+# Skill Roll: {roll}, 
+# Distribution: {distribution}, 
+# D100 Roll: {roll_100}
+# Affinity: {global_affinities[affinity] if is_affinity else ""}
+# Tiers: {tiers}
+# =============================""", loggerName="dnd_utils")
 
         return tiers, affinities
 
     
     @app_commands.command(
-        name="bulk_havest", description="Simulates harvesting a large amount of resources with a distributed average"
+        name="bulk_havest", description="Simulates harvesting a large amount of resources"
     )
     async def bulk_harvest(self, interaction: discord.Interaction, attempts:int, skill:int):
+        try:
         #Take in the skill in question, rely on the user to know what they're harvsting
-        await interaction.response.defer()
-        #Average out what we get and the affinites
-        tiers, affinities = self.bulk_harvest_impl(attempts, skill)
+            await interaction.response.defer()
+            #Average out what we get and the affinites
+            tiers, affinities = self.bulk_harvest_impl(attempts, skill)
+            affinities_string = ""
+            for school in affinities.keys():
+                affinities_string += f"""### {school} affinity 
+{affinities[school][0]} Tier 1
+{affinities[school][1]} Tier 2
+{affinities[school][2]} Tier 3
+{affinities[school][3]} Tier 4
+{affinities[school][4]} Tier 5
+"""
+                
+            if(len(affinities) == 0):
+                affinities_string = "*hah no affinities for you loser*"
 
-        affinities_string = "\n".join(affinities)
-
-        await interaction.followup.send(f"""
+            await interaction.followup.send(f"""
 With {attempts} attempts and a +{skill} to your rolls, you found 
 - {tiers[0]} Tier 1
 
@@ -101,5 +121,9 @@ With {attempts} attempts and a +{skill} to your rolls, you found
 - {tiers[4]} Tier 5
 
 Among those you get 
-{affinities_string} 
-(Raw count of affinities is included in tiers, do not double up please)""")
+{affinities_string} """)
+        except HTTPException as e:
+            if e.status == 400:
+                await interaction.followup.send("Reached character limit, try a lower # of attempts")
+            else:
+                await interaction.followup.send("An unknown error occured")
