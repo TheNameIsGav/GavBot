@@ -5,7 +5,7 @@ import logging.config
 from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
-from ArchivedCommands.crafting import *
+from dnd_utils import *
 from ArchivedCommands.secret_santa import *
 from task import *
 from chatgpt import *
@@ -33,6 +33,7 @@ async def syncCogs(guild=None):
     #await client.add_cog(TaskSession(client), guild=guild)
     await client.add_cog(TextGenerator(client))
     await client.add_cog(UserStats(client))
+    await client.add_cog(DNDUtils(client))
     #await client.add_cog(TaskSession(client))
 
 @client.event

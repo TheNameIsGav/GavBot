@@ -1,3 +1,5 @@
 {
-    "python.pythonPath": "C:\\Users\\D6rks\\AppData\\Local\\Programs\\Python\\Python37-32\\python.exe"
+    "python.pythonPath": "C:\\Users\\D6rks\\AppData\\Local\\Programs\\Python\\Python37-32\\python.exe",
+    "bg3ModHelper.rootModPath": "e:\\Code Workspace\\GavBot",
+    "bg3ModHelper.packingPriority": 0
 }
