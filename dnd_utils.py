@@ -89,7 +89,7 @@ class DNDUtils(commands.Cog):
     @app_commands.command(
         name="bulk_havest", description="Simulates harvesting a large amount of resources"
     )
-    async def bulk_harvest(self, interaction: discord.Interaction, attempts:int, skill:int):
+    async def bulk_harvest(self, interaction: discord.Interaction, attempts:int, skill:int, description:str = "None Provided"):
         try:
         #Take in the skill in question, rely on the user to know what they're harvsting
             await interaction.response.defer()
@@ -109,6 +109,7 @@ class DNDUtils(commands.Cog):
                 affinities_string = "*hah no affinities for you loser*"
 
             await interaction.followup.send(f"""
+Your description was: {description}
 With {attempts} attempts and a +{skill} to your rolls, you found 
 - {tiers[0]} Tier 1
 
