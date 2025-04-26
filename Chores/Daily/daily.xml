@@ -1,0 +1,38 @@
+<chores>
+    <chore>
+        <name>Clear Table</name>
+        <room>Dining Room</room>
+        <description>Dining room table is cleared of mail, personal effects delivered to individual or they have been requested to come get, no jackets over the chairs, etc.</description>
+        <frequency>Daily</frequency>
+    </chore>
+    <chore>
+        <name>Sweep/Vacuum</name>
+        <room>Dining Room</room>
+        <description>Dining room is swept/vacuumed</description>
+        <frequency>Daily</frequency>
+    </chore>
+    <chore>
+        <name>Take Out Trash</name>
+        <room>Kitchen</room>
+        <description>Trash taken out</description>
+        <frequency>Daily</frequency>
+    </chore>
+    <chore>
+        <name>Kitchen Floor Clean</name>
+        <room>Kitchen</room>
+        <description>Kitchen is swept/vacuumed</description>
+        <frequency>Daily</frequency>
+    </chore>
+    <chore>
+        <name>Take Out Recyling</name>
+        <room>Kitchen</room>
+        <description>Recycling taken out</description>
+        <frequency>Daily</frequency>
+    </chore>
+    <chore>
+        <name>Tidy</name>
+        <room>Living Room (Ground)</room>
+        <description>Couch cushions reset, blankets put away, misplaced objects moved off of coffee table, chairs put back in place.</description>
+        <frequency>Daily</frequency>
+    </chore>
+</chores>

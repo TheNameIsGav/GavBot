@@ -144,4 +144,9 @@ Logs/*
 Task/*
 !Task/.gitkeep
 
+Chores/*
+!Chores/.gitkeep
+!Chores/Daily
+!Chores/Weekly
+
 GavBot

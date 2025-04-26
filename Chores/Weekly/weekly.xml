@@ -1,0 +1,80 @@
+<chores>
+    <chore>
+        <name>Tidy Basement</name>
+        <room>Basement</room>
+        <description>Ensure that blankets are put away, couch cushions are placed properly, controllers are put away , includes staircase going downstairs</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Vacuum</name>
+        <room>Basement</room>
+        <description>Basement is vacuumed, includes staircase going downstairs</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Mop</name>
+        <room>Dining Room</room>
+        <description>Dining room is mopped</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Sweep/Vacuum</name>
+        <room>Front Room</room>
+        <description>Front room is swept/vacuumed</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Tidy Front Room</name>
+        <room>Front Room</room>
+        <description>Packages and mail has been removed from the front room, shoes, etc</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Mop</name>
+        <room>Kitchen</room>
+        <description>Floors mopped</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Stovetop</name>
+        <room>Kitchen</room>
+        <description>Stovetop and cast iron cleaned</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Sweep/Vacuum</name>
+        <room>Living Room (Ground)</room>
+        <description>Floors swept or vaccuumed</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Mop</name>
+        <room>Living Room (Ground)</room>
+        <description>Floors mopped</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Guest bathroom toilet</name>
+        <room>Living Room (Ground)</room>
+        <description>Clean the guest bathroom toilet (or make sure it's clean bc we don't use it often)</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Guest bathroom - not toilet</name>
+        <room>Living Room (Ground)</room>
+        <description>Clean the rest of the guest bathroom (sweep/mop, take out trash, sink and mirror)</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Vacuum</name>
+        <room>Upstairs</room>
+        <description>Includes staircase going upstairs, vacuumed</description>
+        <frequency>Weekly</frequency>
+    </chore>
+    <chore>
+        <name>Tidy Upstairs</name>
+        <room>Upstairs</room>
+        <description>Includes staircase going upstairs, objects removed and owners requested to retrieve</description>
+        <frequency>Weekly</frequency>
+    </chore>
+</chores>
