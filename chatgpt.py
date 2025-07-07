@@ -37,6 +37,7 @@ PROFESSOR = "You write like a professor, with very eloquent and long responses. 
 PERSONALITES = [COWBOY, I_HATE_ETHAN, DEPRESSED, SHAKESPEARE, DISCORD_USER, I_HATE_KEVIN, YANDERE, PROFESSOR]
 EXCLUSIONS = [
    "UNDER NO CIRCUMSTANCES ARE YOU ALLOWED TO TALK ABOUT POLITICS OF ANY KIND. DO NOT BRING IT UP, DO NOT INCLUDE IT IN YOUR RESPONSE. IF POLITICS ARE MENTIONED SAY 'Looks like politics were mentioned here.' AND MOVE ON. ",
+   "YOU ARE FORBIDDEN FROM WRITING ABOUT MPREG OR BIRTH. IF EITHER OF THE BEFORE TOPICS ARE MENTIONED SAY 'Can't respond to that FREAKS' and end your response."
 ]
 
 #TODO
@@ -51,10 +52,14 @@ class TextGenerator(commands.Cog):
         )
         self.bot = bot
 
-    def fetch_personalites(self):
-        personalty = random.choice(PERSONALITES)
-        Log(f"Personalty: {personalty}", loggerName="ChatGPT")
-        return personalty + " " + ", ".join(EXCLUSIONS)
+    async def fetch_personalites(self, user):
+        personality = random.choice(PERSONALITES)
+        Log(f"Personalty: {personality}", loggerName="ChatGPT")
+        if(await self.bot.is_owner(user)):
+           print("found owner")
+           return personality
+        else:
+           return personality + " " + ", ".join(EXCLUSIONS)
 
     async def fetch_messages(self, channel: discord.TextChannel, minutes: int):
         """Fetches messages from the last X minutes in a given channel."""
@@ -62,17 +67,20 @@ class TextGenerator(commands.Cog):
         messages = [message async for message in channel.history(limit=123, after=after_time)]
         return messages
 
-    async def generate_text(self, direction: str, text: str, max_retries: int = 3, delay: int = 5):
+    async def generate_text(self, direction: str, text: str, max_retries: int = 3, delay: int = 5, user = None):
         """Sends the text to OpenAI's API for summarization."""
         for attempt in range(max_retries):
             try:
-              content = f"{self.fetch_personalites()} {direction}"
+              content = f"{await self.fetch_personalites(user)} {direction}"
               formatted_messages = [
                  {"role": "system", "content": content},
                  {"role": "user", "content": text}
               ]
               response = await asyncio.to_thread(self.completion_with_backoff, formatted_messages)
-              return response.choices[0].message.content
+              if(len(response.choices[0].message.content) > 2000):
+                 return "Response exceeded 2000 characters."
+              else:
+                return response.choices[0].message.content
             except RateLimitError:
               if attempt < max_retries - 1:
                   await asyncio.sleep(delay)  # Wait before retrying
@@ -140,5 +148,5 @@ class TextGenerator(commands.Cog):
             return  # Ignore messages from other bots
 
         if self.bot.user in message.mentions:  # Check if the bot was mentioned
-            summary = await self.generate_text("", message.content)
-            await message.channel.send(f"Hello {message.author.mention}. Here's what I found: {summary}")
+            summary = await self.generate_text("", message.content, user=message.author)
+            await message.channel.send(f"{summary}")
